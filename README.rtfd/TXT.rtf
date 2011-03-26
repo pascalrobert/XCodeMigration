@@ -1,0 +1,113 @@
+{\rtf1\mac\ansicpg10000\cocoartf824\cocoasubrtf420
+{\fonttbl\f0\fswiss\fcharset77 Helvetica;\f1\fnil\fcharset77 Monaco;}
+{\colortbl;\red255\green255\blue255;\red63\green127\blue127;}
+\margl1440\margr1440\vieww21340\viewh12780\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\f0\fs28 \cf0 This script will help convert multiple WebObjects Xcode projects to Eclipse/WOLips.  It works by parsing a plist of the original Xcode project to find out which files to copy, and copy them in a new WOLips project.  The original Xcode is NOT modified at all, so it's safe to use this tool.\
+\
+I was able to convert 58 projects in... 10 minutes (on an iMac 17" CoreDuo 1.8 Ghz) with this tool. You still have work to do after the conversion (linking the frameworks, adding stuff to the classpath, etc.) but at least it save you a lot of time.\
+\
+So how can you use it ?\
+\
+   1. Install Eclipse and WOLips. The tool was tested with Eclipse 3.2.2 and the latest stable version of WOLips.\
+\
+   2. Make sure your workspace is set to UTF-8, by default Eclipse set it to MacRoman\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 1.png \width11820 \height7520
+}¬}
+\fs28 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 \
+   3. Create two WOLips projects that will be used as templates for the migration. One of your template should be a "WOnder Framework" project, the other a "WOnder Application" project.\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 2.png \width10500 \height10020
+}¬}
+\fs28 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 \
+   4. Find a list of your Xcode projects that you want to import. You can build this list with the help of the "find" command in Terminal. For example, if you want to convert Apple's examples that ships with the Developer Tools :\
+         $ find /Developer/Examples/JavaWebObjects/Frameworks -name '*.xcodeproj'\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 11.png \width16400 \height3380
+}¬}
+\fs28 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0    5. You have your list of projects ? Some regex can help build a XML configuration file. This regex will generate the required XML tags to include in the configuration. If you are using BBedit, paste the results of the find command that you ran on step 4 in an empty text document, open the Find dialog box, click the Use Grep checkbox and use this regex :\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0          1. Search For: ^(.*)/(.*)\\.xcodeproj$\
+         2. Replace With : \\t\\t<project>\\r\\t\\t <path>\\1/</path>\\r\\t\\t\\t<name>\\2</name>\\r\\t\\t</project>\\t\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 4.png \width11780 \height8720
+}¬}
+\fs28 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 \
+   6. Ok, now it's the time to write our XML configuration file. You need 4 things : the paths to the two templates you have created on step 3, a path where the converted projects will be stored (example: /tmp/migrations) and the list of Xcode projects to convert. Look at the sample configuration that ship with the tool. Save the file and take note of it path.\
+\
+   7. Now, you can run the tool.  Right-click on the XCodeToEclipse.java class, select Run As and select Run...  You will get a dialog where you specify the main class, it should be already set to "ca.os.migrations.XCodeToEclipse".  Click on the Arguments tab and add the path to the XML configuration file as a Program argument.\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 6.png \width13040 \height12540
+}¬}
+\fs28 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 7.png \width16340 \height6320
+}¬}\
+\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\ql\qnatural\pardirnatural
+\cf0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 {{\NeXTGraphic Image 8.png \width16380 \height6040
+}¬}\
+
+\fs28 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0    8. When the job is completed, you can open the upper directory set in the "
+\f1\fs22 \cf2 workspacePath" value in the XML configuration file in the Finder or Terminal, and you will see a lot of new folders in there.  You can now start to import the projects into Eclipse.  
+\f0\fs28 \cf0 Open Eclipse, select File->Import, and in General, select Existing Projects into Workspace. Click Next.\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 9.png \width10520 \height4620
+}¬}\
+
+\fs28 \
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 \
+  9. Click the radio button next to "Select root directory" and put the path to the temporary workspace. Hit the Tab key, and the list of converted projects will appear. Just click "Finish".\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 12.png \width10460 \height11020
+}¬}\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs28 \cf0 \
+  10. After a couple of minutes, all of your projects will be imported into your Eclipse workspace.  The PetStoreWOModel example will look like this :\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs24 \cf0 {{\NeXTGraphic Image 13.png \width5040 \height7580
+}¬}\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\fs28 \cf0 \
+\
+\
+\
+}

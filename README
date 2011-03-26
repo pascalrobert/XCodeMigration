@@ -1,0 +1,28 @@
+Version 1.2
+ 
+- Fixed a problem for localized .strings
+ 
+- We are deleting the .xcodeproj from the template
+ 
+- Fix for the new build.properties file format (project.name instead of framework.name)
+ 
+- Almost complete conversion of MacRoman files to UTF-8
+ 
+Version 1.1
+ 
+- Added detection for the following resources: 
+  * javaCheckStyle.xml
+  * Localizable.strings
+  * .plist
+  * .wsdd
+   
+- Proper detection of the "pbprojectdump" binary on Leopard
+ 
+- Handling of localization (.lproj) directories
+ 
+- A nice println to notify the user that the job is complete
+ 
+- Put the good Application class (with the package) into build.properties.  
+If you have Application.java classed in more than one package, it will select the last one.
+ 
+- Put the good project name into build.xml

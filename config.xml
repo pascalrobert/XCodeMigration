@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+	<workspacePath>/tmp/migrations/</workspacePath>
+	<frameworkTemplatePath>/Users/probert/Documents/workspace/FrameworkTemplate/</frameworkTemplatePath>
+	<applicationTemplatePath>/Users/probert/Documents/workspace/ApplicationTemplate/</applicationTemplatePath>
+	<convertToUTF8>true</convertToUTF8>
+	<projects>
+		<project>
+			<path>/path/to/xcode/project/folder</path>
+			<name>ProjectName</name>
+		</project>
+	</projects>
+</config>
