@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -37,7 +38,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import com.webobjects.foundation.NSArray;
 import com.webobjects.foundation.NSData;
+import com.webobjects.foundation.NSLog;
 import com.webobjects.foundation.NSMutableArray;
 import com.webobjects.foundation.NSMutableDictionary;
 import com.webobjects.foundation.NSPropertyListSerialization;
@@ -217,7 +220,47 @@ public class XCodeToEclipse {
 			return pathToXCodeProject;
 		}
 		
+    pathToXCodeProject = new File(project.getPath() + project.getName() + ".project");
+    if (pathToXCodeProject.exists()) {
+      return pathToXCodeProject;
+    }
+		
 		return pathToXCodeProject;
+	}
+	
+	public void parseSubProject(File pathToXCodeProject, String subProjectName) throws ConfigurationException, MalformedURLException {
+	  File subProjectPath = new File(pathToXCodeProject.getParent() + "/" + subProjectName + "/PB.project");
+    NSMutableDictionary plist = (NSMutableDictionary)NSPropertyListSerialization.propertyListWithPathURL(subProjectPath.toURL());
+    NSMutableDictionary filesTables = (NSMutableDictionary)plist.get("FILESTABLE");
+    NSMutableArray<String> javaClasses = (NSMutableArray<String>)filesTables.get("CLASSES");
+    NSMutableArray<String> webResources = (NSMutableArray<String>)filesTables.get("WEBSERVER_RESOURCES");
+    NSMutableArray<String> resources = (NSMutableArray<String>)filesTables.get("WOAPP_RESOURCES");
+    NSMutableArray<String> components = (NSMutableArray<String>)filesTables.get("WO_COMPONENTS");
+
+    copyFiles(new File(pathToXCodeProject.getParent()),filesInfoForFiles(components, subProjectName));
+    copyFiles(new File(pathToXCodeProject.getParent()),filesInfoForFiles(resources, subProjectName));
+    copyFiles(new File(pathToXCodeProject.getParent()),filesInfoForFiles(webResources, subProjectName));
+    copyFiles(new File(pathToXCodeProject.getParent()),filesInfoForFiles(javaClasses, subProjectName));
+	}
+
+	public NSMutableArray<FileInfo> filesInfoForFiles(NSArray<String> files) {
+	  return filesInfoForFiles(files, null);
+	}
+
+	public NSMutableArray<FileInfo> filesInfoForFiles(NSArray<String> files, String subProjectName) {
+	  NSMutableArray<FileInfo> paths = new NSMutableArray<XCodeToEclipse.FileInfo>();
+    for (String file: files) {
+      FileInfo projectFile = new FileInfo();
+      if (subProjectName != null) {
+        projectFile.setPath(subProjectName + "/" + file);
+      } else {
+        projectFile.setPath(file);
+        
+      }
+      projectFile.setEncoding("NSWindowsCP1252StringEncoding");
+      paths.addObject(projectFile);
+    }
+    return paths;
 	}
 	
 	/**
@@ -249,35 +292,67 @@ public class XCodeToEclipse {
 
 					NSMutableArray<FileInfo> paths = new NSMutableArray<FileInfo>();
 
-					Process externalProcess = Runtime.getRuntime().exec(pathForPBDump + " " + pathToXCodeProject.getAbsolutePath());
-					BufferedReader results = new BufferedReader(new InputStreamReader(externalProcess.getInputStream()));
-					String str;
-					StringBuilder strPlist = new StringBuilder();
-					while ((str = results.readLine()) != null) {
-						strPlist.append(str + "\n");
+					File[] projectBuilderFiles = pathToXCodeProject.getParentFile().listFiles(new PBProjectExt());
+					
+					if ((projectBuilderFiles != null) && (projectBuilderFiles.length == 1)) {
+					  
+	           NSMutableDictionary plist = (NSMutableDictionary)NSPropertyListSerialization.propertyListWithPathURL(projectBuilderFiles[0].toURL());
+	           NSMutableDictionary filesTables = (NSMutableDictionary)plist.get("FILESTABLE");
+	           NSMutableArray<String> frameworks = (NSMutableArray<String>)filesTables.get("FRAMEWORKS");
+	           NSMutableArray<String> javaClasses = (NSMutableArray<String>)filesTables.get("CLASSES");
+	           NSMutableArray<String> subProjects = (NSMutableArray<String>)filesTables.get("SUBPROJECTS");
+	           NSMutableArray<String> webResources = (NSMutableArray<String>)filesTables.get("WEBSERVER_RESOURCES");
+	           NSMutableArray<String> resources = (NSMutableArray<String>)filesTables.get("WOAPP_RESOURCES");
+	           NSMutableArray<String> components = (NSMutableArray<String>)filesTables.get("WO_COMPONENTS");
+	           String projectType = (String)plist.get("PROJECTTYPE");
+	           boolean isFramework = true;
+	           if ("JavaWebObjectsApplication".equals(projectType)) {
+	             isFramework = false;
+	           }
+	           createEclipseProject(project,isFramework);
+
+	           for (String subProject: subProjects) {
+	             parseSubProject(pathToXCodeProject, subProject);
+	           }
+	           
+             copyFiles(new File(project.getPath()),filesInfoForFiles(components));
+             copyFiles(new File(project.getPath()),filesInfoForFiles(resources));
+             copyFiles(new File(project.getPath()),filesInfoForFiles(webResources));
+             copyFiles(new File(project.getPath()),filesInfoForFiles(javaClasses));
+             copyFiles(new File(project.getPath()),filesInfoForFiles(frameworks));
+	           	           
+					} else {
+
+					  Process externalProcess = Runtime.getRuntime().exec(pathForPBDump + " " + pathToXCodeProject.getAbsolutePath());
+					  BufferedReader results = new BufferedReader(new InputStreamReader(externalProcess.getInputStream()));
+					  String str;
+					  StringBuilder strPlist = new StringBuilder();
+					  while ((str = results.readLine()) != null) {
+					    strPlist.append(str + "\n");
+					  }
+
+					  plistData = new NSData(strPlist.toString(),"UTF-8");
+					  String plistString = new String(plistData.bytes(0, plistData.length()));
+					  NSMutableDictionary plist = (NSMutableDictionary)NSPropertyListSerialization.propertyListFromString(plistString);
+					  NSMutableDictionary rootObject = (NSMutableDictionary)plist.get("rootObject");
+
+					  NSMutableArray targets = (NSMutableArray)rootObject.get("targets");
+
+					  NSMutableDictionary mainGroup = (NSMutableDictionary)rootObject.get("mainGroup");
+					  NSMutableArray mainGroupChildren = (NSMutableArray)mainGroup.get("children");
+
+					  for (int i = 0; i < mainGroupChildren.count(); i++) {
+					    NSMutableDictionary childOfChild = (NSMutableDictionary)mainGroupChildren.objectAtIndex(i);
+					    if ((childOfChild.get("name") == null) || ((childOfChild.get("name") != null) && (!(((String)childOfChild.get("name")).equals("Products"))))) {
+					      createEclipseProject(project,isFramework(targets));
+					      fetchFilesFromProject(childOfChild,"",paths,pathToXCodeProject);
+					      copyFiles(new File(project.getPath()),paths);
+					    }
+					  }
+					  str = null;
+					  strPlist = null;
+					  
 					}
-
-					plistData = new NSData(strPlist.toString(),"UTF-8");
-					String plistString = new String(plistData.bytes(0, plistData.length()));
-					NSMutableDictionary plist = (NSMutableDictionary)NSPropertyListSerialization.propertyListFromString(plistString);
-					NSMutableDictionary rootObject = (NSMutableDictionary)plist.get("rootObject");
-
-					NSMutableArray targets = (NSMutableArray)rootObject.get("targets");
-
-					NSMutableDictionary mainGroup = (NSMutableDictionary)rootObject.get("mainGroup");
-					NSMutableArray mainGroupChildren = (NSMutableArray)mainGroup.get("children");
-
-					for (int i = 0; i < mainGroupChildren.count(); i++) {
-						NSMutableDictionary childOfChild = (NSMutableDictionary)mainGroupChildren.objectAtIndex(i);
-						if ((childOfChild.get("name") == null) || ((childOfChild.get("name") != null) && (!(((String)childOfChild.get("name")).equals("Products"))))) {
-							createEclipseProject(project,isFramework(targets));
-							fetchFilesFromProject(childOfChild,"",paths,pathToXCodeProject);
-							copyFiles(new File(project.getPath()),paths);
-						}
-					}
-
-					str = null;
-					strPlist = null;
 				}
 			}
 		} catch (MalformedURLException e) {
@@ -322,6 +397,13 @@ public class XCodeToEclipse {
 		if (buildProps.getProperty("project.name.lowercase") != null) {
 			buildProps.setProperty("project.name.lowercase",project.getName().toLowerCase());
 		}		
+    if (buildProps.getProperty("project.type") != null) {
+      if (isFramework) {
+        buildProps.setProperty("project.type",project.getName().toLowerCase());        
+      } else {
+        buildProps.setProperty("project.type","framework");
+      }
+    } 
 		
 		this.saveBuildProperties(buildProps, fileDestination);
 
@@ -473,7 +555,7 @@ public class XCodeToEclipse {
 			eclipseFolder = "/" + eclipseFolder + "/";
 			
 			if (path.startsWith("../")) {
-				System.out.println("chemin commencant par ../: " + path);
+				System.out.println("path starting with ../: " + path);
 			}
 			
 			/* Some paths that are relative to the Xcode project has "../" in them 
@@ -816,5 +898,14 @@ public class XCodeToEclipse {
 			this.packageName = packageName;
 		}
 		
+	}
+	
+	public class PBProjectExt implements FilenameFilter { 
+	  String ext; 
+	  public PBProjectExt() { 
+	  } 
+	  public boolean accept(File dir, String name) { 
+	    return name.equals("PB.project"); 
+	  } 
 	}
 }
