@@ -67,7 +67,7 @@ public class XCodeToEclipse {
 	/** Path to an framework project template done with WOLips */
 	public String			frameworkTemplatePath;
 	/** Path to the pbprojectdump binary, needed to convert a XCode project file as a easy to read plist */
-	public String 			pathForPBDump = "/usr/bin/pbprojectdump";	
+	public String 			pathForPBDump = "/usr/local/bin/pbprojectdump";	
     /** Should .java files encoded in MacRoman converts to UTF-8 ? */
 	public boolean			shouldConvertToUTF8 = true;
 	
@@ -249,18 +249,22 @@ public class XCodeToEclipse {
 
 	public NSMutableArray<FileInfo> filesInfoForFiles(NSArray<String> files, String subProjectName) {
 	  NSMutableArray<FileInfo> paths = new NSMutableArray<XCodeToEclipse.FileInfo>();
-    for (String file: files) {
-      FileInfo projectFile = new FileInfo();
-      if (subProjectName != null) {
-        projectFile.setPath(subProjectName + "/" + file);
-      } else {
-        projectFile.setPath(file);
-        
-      }
-      projectFile.setEncoding("NSWindowsCP1252StringEncoding");
-      paths.addObject(projectFile);
-    }
-    return paths;
+	  if (files != null) {
+	    for (String file: files) {
+	      FileInfo projectFile = new FileInfo();
+	      if (subProjectName != null) {
+	        projectFile.setPath(subProjectName + "/" + file);
+	      } else {
+	        projectFile.setPath(file);
+
+	      }
+	      projectFile.setEncoding("NSWindowsCP1252StringEncoding");
+	      paths.addObject(projectFile);
+	    }
+	  } else {
+	    NSLog.out.appendln(subProjectName);
+	  }
+	  return paths;
 	}
 	
 	/**
